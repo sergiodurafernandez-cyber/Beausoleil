@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Beausoleil — Renovation Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+:root {
+  --bg: oklch(97% 0.008 75); --bg-sand: oklch(93% 0.015 78); --bg-mid: oklch(89% 0.018 78);
+  --ink: oklch(18% 0.008 60); --ink-2: oklch(35% 0.008 60); --ink-3: oklch(55% 0.008 60); --ink-4: oklch(72% 0.008 60);
+  --rule: oklch(86% 0.012 75);
+  --terracotta: oklch(52% 0.13 42); --terracotta-bg: oklch(94% 0.04 42);
+  --brass: oklch(62% 0.09 80); --brass-bg: oklch(95% 0.035 80);
+  --green: oklch(50% 0.1 155); --green-bg: oklch(94% 0.04 155);
+  --blue: oklch(48% 0.12 240); --blue-bg: oklch(94% 0.04 240);
+  --sand-badge: oklch(90% 0.018 78);
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; }
+body { display: flex; flex-direction: column; min-height: 100vh; }
+
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 52px; background: var(--ink); color: var(--bg); position: sticky; top: 0; z-index: 100; }
+.nav-logo { font-family: var(--font-serif); font-size: 17px; font-weight: 500; letter-spacing: 0.04em; color: var(--bg); }
+.nav-logo span { font-weight: 400; opacity: 0.5; font-style: italic; font-size: 13px; margin-left: 8px; }
+.week-selector { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-4); letter-spacing: 0.06em; text-transform: uppercase; }
+.week-selector input[type="date"] { background: transparent; border: none; border-bottom: 1px solid oklch(40% 0.008 60); color: oklch(80% 0.008 60); font-family: var(--font-sans); font-size: 12px; padding: 2px 4px; cursor: pointer; outline: none; }
+.week-selector input[type="date"]:focus { border-bottom-color: var(--brass); }
+
+.sync-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 32px; border-bottom: 1px solid var(--rule); background: var(--bg); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+.sync-indicator { display: flex; align-items: center; gap: 6px; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s; }
+.sync-dot.saved { background: var(--green); }
+.sync-dot.saving { background: var(--brass); animation: pulse 1s ease-in-out infinite; }
+.sync-dot.error { background: var(--terracotta); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.btn-ghost { background: none; border: 1px solid var(--rule); color: var(--ink-2); font-family: var(--font-sans); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+.btn-ghost:hover { border-color: var(--ink-3); color: var(--ink); }
+
+.tabs { display: flex; border-bottom: 1px solid var(--rule); padding: 0 32px; background: var(--bg); position: sticky; top: 52px; z-index: 90; }
+.tab { font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500; padding: 12px 0; margin-right: 28px; border-bottom: 2px solid transparent; cursor: pointer; color: var(--ink-3); transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--font-sans); white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--ink); border-bottom-color: var(--terracotta); }
+
+.content { flex: 1; padding: 32px; max-width: 1200px; width: 100%; }
+
+.editorial-banner { width: 100%; margin-bottom: 36px; border: 1px solid var(--rule); display: block; }
+
+.metrics-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 32px; }
+.metric-card { background: var(--bg); padding: 20px 20px 16px; }
+.metric-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; }
+.metric-value { font-family: var(--font-mono); font-size: 28px; font-weight: 500; color: var(--ink); line-height: 1; }
+.metric-value.green { color: var(--green); }
+.metric-value.brass { color: var(--brass); }
+.metric-value.terra { color: var(--terracotta); }
+
+.deadline-section { margin-bottom: 32px; }
+.deadline-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.deadline-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.deadline-detail { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.deadline-bar-track { height: 3px; background: var(--bg-mid); position: relative; }
+.deadline-bar-fill { height: 100%; background: var(--terracotta); transition: width 0.5s ease; }
+.deadline-bar-marker { position: absolute; top: -4px; width: 1px; height: 11px; background: var(--ink-2); }
+.deadline-bar-marker::after { content: attr(data-label); position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.deadline-dates { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--ink-4); letter-spacing: 0.05em; }
+
+.blocked-section { }
+.section-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; }
+.blocked-list { display: flex; flex-direction: column; gap: 1px; }
+.blocked-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 16px; padding: 10px 14px; background: oklch(97% 0.02 42); border-left: 2px solid var(--terracotta); font-size: 13px; }
+.blocked-item-name { color: var(--ink); }
+.blocked-item-owner { color: var(--ink-3); font-size: 12px; }
+.empty-state { color: var(--ink-4); font-size: 13px; font-style: italic; padding: 16px 0; }
+
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); background: var(--bg); white-space: nowrap; }
+thead th:first-child { width: 36px; }
+tbody tr { border-bottom: 1px solid var(--rule); transition: background 0.1s; }
+tbody tr:hover { background: var(--bg-sand); }
+tbody tr.done-row { opacity: 0.55; }
+td { padding: 10px 12px; font-size: 13px; vertical-align: middle; }
+td:first-child { width: 36px; }
+
+.check { width: 16px; height: 16px; border: 1.5px solid var(--ink-4); background: none; cursor: pointer; appearance: none; display: grid; place-items: center; flex-shrink: 0; transition: border-color 0.15s, background 0.15s; }
+.check:checked { background: var(--ink); border-color: var(--ink); }
+.check:checked::after { content: ''; display: block; width: 8px; height: 5px; border-left: 1.5px solid var(--bg); border-bottom: 1.5px solid var(--bg); transform: rotate(-45deg) translateY(-1px); }
+.done-text { text-decoration: line-through; color: var(--ink-3); }
+
+.badge { display: inline-block; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; cursor: pointer; font-weight: 500; border: none; font-family: var(--font-sans); }
+.badge.Done      { background: var(--green-bg);  color: var(--green); }
+.badge.Delivered { background: var(--green-bg);  color: var(--green); }
+.badge.In-progress { background: var(--blue-bg); color: var(--blue); }
+.badge.Pending  { background: var(--sand-badge); color: var(--ink-2); }
+.badge.Blocked  { background: var(--terracotta-bg); color: var(--terracotta); }
+.badge.Ordered  { background: var(--brass-bg); color: var(--brass); }
+.badge.Paid     { background: var(--green-bg); color: var(--green); }
+.badge.Overdue  { background: var(--terracotta-bg); color: var(--terracotta); }
+
+.editable { cursor: pointer; color: inherit; border-bottom: 1px dashed transparent; transition: border-color 0.15s; display: inline-block; min-width: 40px; }
+.editable:hover { border-bottom-color: var(--ink-3); }
+.editable-input { font-family: var(--font-sans); font-size: 13px; color: var(--ink); background: oklch(96% 0.015 78); border: 1px solid var(--ink-3); padding: 3px 6px; width: 130px; outline: none; }
+.editable-select { font-family: var(--font-sans); font-size: 12px; color: var(--ink); background: var(--bg); border: 1px solid var(--ink-3); padding: 3px 6px; outline: none; cursor: pointer; }
+.editable-date { font-family: var(--font-mono); font-size: 12px; color: var(--ink); background: oklch(96% 0.015 78); border: 1px solid var(--ink-3); padding: 3px 6px; outline: none; }
+.date-display { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+.date-display.overdue { color: var(--terracotta); font-weight: 500; }
+.delete-btn { background: none; border: none; color: var(--ink-4); cursor: pointer; font-size: 16px; padding: 2px 6px; line-height: 1; opacity: 0; transition: opacity 0.15s, color 0.15s; }
+tbody tr:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { color: var(--terracotta); }
+
+.room-row td { padding: 16px 12px 6px; }
+.room-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; border-bottom: 1px solid var(--rule); padding-bottom: 4px; display: block; }
+.price-cell { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.price-cell em { color: var(--ink-4); font-style: normal; }
+.link-cell { white-space: nowrap; }
+.link-cell a { font-size: 11px; letter-spacing: 0.04em; color: var(--terracotta); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+.link-cell a:hover { border-bottom-color: var(--terracotta); }
+.link-cell .no-link { font-size: 11px; color: var(--ink-4); font-style: italic; cursor: pointer; }
+.link-cell .no-link:hover { color: var(--ink-3); }
+.url-input { font-family: var(--font-sans); font-size: 11px; color: var(--ink); background: oklch(96% 0.015 78); border: 1px solid var(--ink-3); padding: 3px 6px; width: 200px; outline: none; }
+
+.add-row td { padding: 0; }
+.add-btn { background: none; border: none; color: var(--ink-3); font-family: var(--font-sans); font-size: 12px; letter-spacing: 0.06em; cursor: pointer; padding: 10px 12px; display: flex; align-items: center; gap: 6px; transition: color 0.15s; }
+.add-btn:hover { color: var(--terracotta); }
+
+.amount { font-family: var(--font-mono); font-weight: 500; font-size: 13px; }
+tfoot td { padding: 12px 12px; border-top: 2px solid var(--rule); font-size: 13px; }
+.foot-paid { font-family: var(--font-mono); font-weight: 500; color: var(--green); font-size: 15px; }
+.foot-remaining { font-family: var(--font-mono); font-weight: 500; color: var(--ink); font-size: 15px; }
+
+/* ── PAYMENT SUMMARY BAR ── */
+.payment-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 24px; }
+.payment-summary-card { background: var(--bg); padding: 18px 20px 14px; }
+.payment-summary-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.payment-summary-value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; line-height: 1; }
+.payment-summary-value.forecast { color: var(--ink); }
+.payment-summary-value.spent { color: var(--green); }
+.payment-summary-sub { font-size: 11px; color: var(--ink-4); margin-top: 6px; font-family: var(--font-mono); }
+.payment-progress-track { height: 3px; background: var(--bg-mid); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.payment-progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.5s ease; }
+
+/* ── OVERVIEW SECTIONS ── */
+.ov-section { margin-bottom: 28px; }
+.ov-section-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 0.5px solid var(--rule); }
+.ov-status-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.ov-status-card { background: var(--bg); padding: 16px 18px 14px; }
+.ov-status-card.primary { background: var(--bg2); }
+.ov-status-card.danger { background: #FCEBEB; }
+.ov-status-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.ov-status-value { font-family: var(--font-mono); font-size: 24px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+.ov-status-value.green { color: #3B6D11; }
+.ov-status-sub { font-size: 11px; color: var(--ink-4); margin-top: 5px; }
+.ov-mini-split { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+.ov-mini-row { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 8px; font-size: 10.5px; color: var(--ink-3); }
+.ov-mini-track { height: 4px; background: var(--bg-mid); border-radius: 99px; overflow: hidden; }
+.ov-mini-fill { height: 100%; border-radius: 99px; }
+.ov-mini-amt { font-family: var(--font-mono); color: var(--ink-2); white-space: nowrap; }
+.ov-bar-wrap { }
+.ov-bar-track { height: 20px; background: var(--bg-mid); border-radius: 3px; overflow: hidden; display: flex; position: relative; margin-bottom: 10px; }
+.ov-bar-seg { height: 100%; flex-shrink: 0; }
+.ov-bar-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); border-radius: 1px; z-index: 3; }
+.ov-bar-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); align-items: center; }
+.ov-bar-leg-item { display: flex; align-items: center; gap: 5px; }
+.ov-bar-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.ov-overbudget-banner { margin-top: 10px; padding: 10px 14px; background: #FCEBEB; border-left: 3px solid #A32D2D; color: #A32D2D; font-size: 13px; font-weight: 500; }
+.ov-breakdown-wrap { display: flex; flex-direction: column; gap: 10px; }
+.ov-breakdown-row { display: grid; grid-template-columns: 220px 1fr 70px; align-items: center; gap: 16px; padding: 10px 14px; background: var(--bg); border: 0.5px solid var(--rule); border-radius: 4px; }
+.ov-breakdown-label { font-size: 13px; font-weight: 500; }
+.ov-breakdown-sub { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+.ov-breakdown-bar-track { height: 6px; background: var(--bg-mid); border-radius: 3px; overflow: hidden; }
+.ov-breakdown-bar-fill { height: 100%; border-radius: 3px; }
+.ov-breakdown-amt { font-family: var(--font-mono); font-size: 14px; font-weight: 600; text-align: right; }
+.ov-drivers-wrap { border: 0.5px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.ov-drivers-head { display: grid; grid-template-columns: 1fr 80px 100px; gap: 8px; padding: 6px 14px; background: var(--bg2); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); border-bottom: 0.5px solid var(--rule); }
+.ov-driver-row { display: grid; grid-template-columns: 1fr 80px 100px; gap: 8px; padding: 9px 14px; border-bottom: 0.5px solid var(--rule); font-size: 13px; background: var(--bg); }
+.ov-driver-row:last-child { border-bottom: none; }
+.ov-driver-row:hover { background: var(--bg2); }
+.ov-driver-name { color: var(--ink); }
+.ov-driver-amt { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
+.ov-driver-diff { font-family: var(--font-mono); font-size: 12px; color: var(--ink-4); }
+.ov-driver-diff.over { color: #A32D2D; font-weight: 500; }
+.ov-driver-diff.under { color: #3B6D11; }
+.ov-risk-wrap { border: 0.5px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.ov-risk-head { display: grid; grid-template-columns: 1fr 80px 90px; gap: 8px; padding: 6px 14px; background: var(--bg2); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); border-bottom: 0.5px solid var(--rule); }
+.ov-risk-row { display: grid; grid-template-columns: 1fr 80px 90px; gap: 8px; padding: 9px 14px; border-bottom: 0.5px solid var(--rule); font-size: 13px; background: var(--bg); align-items: center; }
+.ov-risk-row:last-child { border-bottom: none; }
+.ov-risk-row.high { background: oklch(97.5% 0.018 42); }
+.ov-risk-row.medium { background: oklch(98% 0.01 78); }
+.ov-risk-name { color: var(--ink); }
+.ov-risk-est { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+.ov-risk-status { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 7px; border-radius: 20px; display: inline-block; }
+.ov-risk-status.high   { background: #FCEBEB; color: #A32D2D; }
+.ov-risk-status.medium { background: #FAEEDA; color: #854F0B; }
+.ov-risk-status.low    { background: var(--bg2); color: var(--ink-3); }
+
+/* ── GANTT CHART ── */
+.gantt-wrap { margin-bottom: 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.gantt-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+.gantt-inner { min-width: 560px; }
+.gantt-header { display: flex; margin-left: 180px; margin-bottom: 4px; position: relative; border-bottom: 0.5px solid var(--rule); padding-bottom: 6px; }
+.gantt-month { flex: 1; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); text-align: center; }
+.gantt-today-line { position: absolute; top: 0; bottom: -100vh; width: 1px; background: var(--terracotta); opacity: 0.5; pointer-events: none; z-index: 2; }
+.gantt-row { display: flex; align-items: center; margin-bottom: 6px; position: relative; min-height: 26px; }
+.gantt-label { width: 180px; flex-shrink: 0; font-size: 12px; color: var(--ink-2); padding-right: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.gantt-label.done-text { color: var(--ink-4); text-decoration: line-through; }
+.gantt-track { flex: 1; position: relative; height: 20px; background: var(--bg-mid); border-radius: 2px; }
+.gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 2px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; min-width: 4px; transition: opacity 0.15s; }
+.gantt-bar:hover { opacity: 0.85; }
+.gantt-bar.In-progress { background: var(--blue); }
+.gantt-bar.Pending     { background: var(--ink-4); }
+.gantt-bar.Blocked     { background: var(--terracotta); }
+.gantt-bar.Done        { background: var(--green); }
+.gantt-bar-label { font-size: 10px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.04em; }
+.gantt-owner { font-size: 10px; color: var(--ink-3); margin-left: 6px; white-space: nowrap; }
+.gantt-legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.gantt-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-2); }
+.gantt-legend-dot { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+@media (max-width: 700px) {
+  .gantt-header { margin-left: 100px; }
+  .gantt-label { width: 100px; font-size: 11px; }
+}
+
+/* ── URGENT ITEMS ── */
+.urgent-section { margin-top: 20px; }
+.urgent-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; }
+.urgent-list { display: flex; flex-direction: column; gap: 1px; }
+.urgent-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border-left: 2px solid var(--rule); }
+.urgent-item.high { border-left-color: var(--terracotta); background: oklch(97% 0.018 42); }
+.urgent-item.medium { border-left-color: var(--brass); }
+.urgent-item-name { flex: 1; font-size: 13px; color: var(--ink); }
+.urgent-item-tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.urgent-item-badge { font-size: 10px; }
+
+@media (max-width: 700px) {
+  .payment-summary { grid-template-columns: 1fr 1fr; }
+  .payment-summary-value { font-size: 18px; }
+  .ov-status-grid { grid-template-columns: repeat(2,1fr); }
+  .ov-status-value { font-size: 18px; }
+  .ov-breakdown-row { grid-template-columns: 1fr 50px; gap: 10px; }
+  .ov-breakdown-bar-track { display: none; }
+  .ov-drivers-head, .ov-driver-row { grid-template-columns: 1fr 70px 70px; font-size: 12px; }
+  .ov-risk-head, .ov-risk-row { grid-template-columns: 1fr 60px 80px; font-size: 12px; }
+  .timeline-meta { flex-direction: column; align-items: flex-end; gap: 3px; }
+}
+.purchase-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 24px; }
+.purchase-summary-card { background: var(--bg); padding: 18px 20px 14px; }
+.purchase-summary-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.purchase-summary-value { font-family: var(--font-mono); font-size: 26px; font-weight: 500; line-height: 1; }
+.purchase-summary-value.forecasted { color: var(--ink); }
+.purchase-summary-value.actual { color: var(--brass); }
+.purchase-summary-sub { font-size: 11px; color: var(--ink-4); margin-top: 6px; font-family: var(--font-mono); }
+.purchase-progress-wrap { margin-top: 10px; }
+.purchase-progress-track { height: 3px; background: var(--bg-mid); border-radius: 2px; overflow: hidden; margin-top: 4px; position: relative; }
+.purchase-progress-fill { height: 100%; background: var(--brass); border-radius: 2px; transition: width 0.5s ease; }
+.purchase-progress-label { font-size: 10px; color: var(--ink-4); letter-spacing: 0.05em; font-family: var(--font-mono); }
+.purchase-missing { font-size: 11px; color: var(--ink-4); font-style: italic; margin-top: 4px; }
+
+@media (max-width: 700px) {
+  .purchase-summary { grid-template-columns: 1fr 1fr; }
+  .purchase-summary-value { font-size: 20px; }
+  .purchase-summary-card { padding: 14px 14px 10px; }
+}
+
+.notes-area { width: 100%; min-height: 320px; background: var(--bg); border: 1px solid var(--rule); padding: 20px; font-family: var(--font-sans); font-size: 14px; color: var(--ink); line-height: 1.7; resize: vertical; outline: none; transition: border-color 0.15s; }
+.notes-area:focus { border-color: var(--ink-3); }
+.notes-footer { margin-top: 12px; display: flex; align-items: center; gap: 12px; }
+.btn-solid { background: var(--ink); color: var(--bg); border: none; font-family: var(--font-sans); font-size: 12px; letter-spacing: 0.07em; text-transform: uppercase; padding: 9px 18px; cursor: pointer; transition: background 0.15s; }
+.btn-solid:hover { background: oklch(28% 0.008 60); }
+.copy-confirm { font-size: 12px; color: var(--green); letter-spacing: 0.04em; }
+
+.panel-overlay { position: fixed; inset: 0; background: oklch(18% 0.008 60 / 0.3); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.panel-overlay.open { opacity: 1; pointer-events: all; }
+.add-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 380px; background: var(--bg); border-left: 1px solid var(--rule); z-index: 201; transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); padding: 32px; display: flex; flex-direction: column; overflow-y: auto; }
+.add-panel.open { transform: translateX(0); }
+.panel-title { font-family: var(--font-serif); font-size: 20px; font-weight: 500; margin-bottom: 28px; }
+.field-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 18px; }
+.field-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.field-input { background: var(--bg); border: 1px solid var(--rule); font-family: var(--font-sans); font-size: 13px; color: var(--ink); padding: 8px 10px; outline: none; transition: border-color 0.15s; width: 100%; }
+.field-input:focus { border-color: var(--ink-3); }
+.panel-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+.loading-screen { display: flex; align-items: center; justify-content: center; height: 60vh; font-size: 13px; color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; }
+
+
+
+/* ── COST DRIVERS DETAIL TAB ── */
+.cd-kpi-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); margin-bottom:24px; }
+.cd-kpi-card { background:var(--bg); padding:16px 18px 14px; }
+.cd-kpi-label { font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; }
+.cd-kpi-value { font-family:var(--font-mono); font-size:24px; font-weight:600; line-height:1; }
+.cd-kpi-value.over { color:#A32D2D; }
+.cd-kpi-value.under { color:#3B6D11; }
+.cd-note { background:var(--brass-bg); border-left:3px solid var(--brass); padding:10px 14px; font-size:12px; color:var(--ink-2); margin-bottom:18px; line-height:1.45; }
+.cd-driver-card { border:1px solid var(--rule); background:var(--bg); margin-bottom:14px; border-radius:5px; overflow:hidden; }
+.cd-driver-head { display:grid; grid-template-columns: 1.4fr 120px 120px 120px 92px; gap:12px; align-items:center; padding:13px 14px; background:var(--bg-sand); border-bottom:1px solid var(--rule); }
+.cd-driver-name { font-size:14px; font-weight:600; color:var(--ink); }
+.cd-driver-meta { font-size:11px; color:var(--ink-3); margin-top:3px; line-height:1.3; }
+.cd-num { font-family:var(--font-mono); font-size:13px; text-align:right; white-space:nowrap; }
+.cd-num.over { color:#A32D2D; font-weight:600; }
+.cd-num.under { color:#3B6D11; font-weight:600; }
+.cd-status { justify-self:end; font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:20px; }
+.cd-status.over { background:#FCEBEB; color:#A32D2D; }
+.cd-status.under { background:var(--green-bg); color:#3B6D11; }
+.cd-status.check { background:#FAEEDA; color:#854F0B; }
+.cd-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); }
+.cd-detail-pane { background:var(--bg); padding:12px 14px; }
+.cd-detail-title { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px; }
+.cd-line { display:grid; grid-template-columns:1fr 84px; gap:10px; padding:6px 0; border-bottom:.5px solid var(--rule); font-size:12px; }
+.cd-line:last-child { border-bottom:none; }
+.cd-line-name { color:var(--ink-2); line-height:1.35; }
+.cd-line-amt { font-family:var(--font-mono); text-align:right; color:var(--ink); white-space:nowrap; }
+.cd-line-sub { color:var(--ink-4); font-size:11px; margin-top:2px; }
+.ov-driver-row.clickable { cursor:pointer; }
+.ov-driver-row.clickable:hover { background:var(--bg-sand); }
+@media (max-width:700px) {
+  .cd-kpi-grid { grid-template-columns: repeat(2,1fr); }
+  .cd-driver-head { grid-template-columns:1fr 80px 80px; }
+  .cd-driver-head .cd-num:nth-of-type(3), .cd-driver-head .cd-status { display:none; }
+  .cd-detail-grid { grid-template-columns:1fr; }
+}
+
+/* ── MOBILE CARD LAYOUT ── */
+.mobile-card { display: none; }
+
+@media (max-width: 700px) {
+  /* ── Prevent iOS zoom on any input/select/textarea ── */
+  input, select, textarea, button { font-size: 16px !important; }
+  .field-input { font-size: 16px !important; }
+
+  /* Nav */
+  .nav { padding: 0 16px; height: 48px; }
+  .nav-logo { font-size: 15px; }
+  .nav-logo span { display: none; }
+  .week-selector { font-size: 12px; gap: 4px; }
+  .week-selector input[type="date"] { font-size: 16px !important; }
+
+  /* Sync bar */
+  .sync-bar { padding: 5px 16px; }
+  .btn-ghost { font-size: 12px; padding: 5px 10px; }
+
+  /* Tabs — scrollable strip, no zoom */
+  .tabs { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { font-size: 12px; padding: 12px 0; margin-right: 22px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Content */
+  .content { padding: 16px; }
+
+  /* Editorial banner — too wide for mobile */
+  .editorial-banner { display: none; }
+
+  /* Metrics — 2 cols */
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .metric-card { padding: 14px 14px 10px; }
+  .metric-value { font-size: 22px; }
+
+  /* Deadline */
+  .deadline-header { flex-direction: column; gap: 4px; }
+
+  /* Blocked items */
+  .blocked-item { grid-template-columns: 1fr auto; gap: 8px; }
+  .blocked-item-owner { display: none; }
+
+  /* Purchase summary — stack on very small screens */
+  .purchase-summary { grid-template-columns: 1fr 1fr; }
+  .purchase-summary-value { font-size: 18px; }
+  .purchase-summary-card { padding: 12px 12px 10px; }
+
+  /* Hide table, show cards */
+  .table-container { display: none; }
+  .mobile-card { display: block; }
+
+  /* ── CARD LIST ── */
+  .card-list { display: flex; flex-direction: column; }
+
+  /* Room divider */
+  .card-room-label {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500;
+    padding: 20px 0 6px; border-bottom: 1px solid var(--rule);
+  }
+  .card-room-label:first-child { padding-top: 6px; }
+
+  /* ── ITEM CARD ── */
+  .item-card {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .item-card.done-card { opacity: 0.5; }
+  .item-card-check { padding-top: 3px; }
+  .check { width: 18px; height: 18px; }
+
+  /* Card body: name top, then price row, then secondary row */
+  .item-card-body { display: flex; flex-direction: column; gap: 8px; }
+
+  .item-card-name {
+    font-size: 15px; font-weight: 500;
+    color: var(--ink); line-height: 1.35;
+  }
+  .item-card-name.done-text { text-decoration: line-through; color: var(--ink-3); font-weight: 400; }
+
+  /* Price + status row — prominent */
+  .item-card-primary {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .item-card-price-big {
+    font-family: var(--font-mono); font-size: 16px; font-weight: 500; color: var(--ink);
+  }
+  .item-card-price-empty {
+    font-size: 13px; color: var(--ink-4); font-style: italic;
+  }
+
+  /* Secondary row — owner, ETA, link */
+  .item-card-secondary {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .item-card-owner { font-size: 12px; color: var(--ink-3); }
+  .item-card-eta { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+  .item-card-eta.overdue { color: var(--terracotta); font-weight: 500; }
+  .item-card-dot { font-size: 10px; color: var(--ink-4); }
+  .item-card-link a {
+    font-size: 12px; color: var(--terracotta);
+    text-decoration: none; border-bottom: 1px solid transparent;
+  }
+
+  /* Badge on mobile — slightly larger touch target */
+  .badge { font-size: 10px; padding: 4px 10px; }
+
+  /* Delete — top right corner */
+  .item-card-del {
+    background: none; border: none; color: var(--ink-4);
+    cursor: pointer; font-size: 18px; padding: 0;
+    position: absolute; right: 0; top: 14px;
+  }
+  .item-card { position: relative; padding-right: 28px; }
+
+  /* Add button */
+  .mobile-add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: none; border: 1px dashed var(--rule);
+    color: var(--ink-3); font-family: var(--font-sans);
+    font-size: 14px; letter-spacing: 0.04em;
+    cursor: pointer; padding: 14px; width: 100%; margin-top: 12px;
+  }
+
+  /* Payments footer */
+  .mobile-pay-footer {
+    display: flex; justify-content: space-between;
+    padding: 16px 0 4px; border-top: 2px solid var(--rule);
+    margin-top: 8px; font-size: 14px;
+  }
+
+  /* Add panel — slides up from bottom on mobile */
+  .add-panel {
+    top: auto; right: 0; left: 0; bottom: 0;
+    width: 100%; height: auto; max-height: 90vh;
+    border-left: none; border-top: 1px solid var(--rule);
+    transform: translateY(100%);
+    padding: 24px 20px 40px;
+    border-radius: 16px 16px 0 0;
+  }
+  .add-panel.open { transform: translateY(0); }
+  .panel-title { font-size: 18px; margin-bottom: 20px; }
+
+  /* Notes */
+  .notes-area { min-height: 180px; padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const API_KEY = '$2a$10$eIc5xWIl0pj0WFbkTwDt4ew3Ext3tnrK3JGKzh1EBoxLPc3Y4gSaK';
+const BIN_ID  = '69e7436a36566621a8d6ba47';
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const STATUS_OPTS          = ['Pending','In progress','Blocked','Ordered','Done'];
+const PURCHASE_STATUS_OPTS = ['Pending','In progress','Blocked','Ordered','Delivered'];
+const ROOM_OPTS    = ['Living room','Main bedroom','Second bedroom','Main bathroom','Guest WC','Studio','Kitchen','Multiple rooms'];
+const PAY_STATUS   = ['Pending','Paid','Overdue'];
+const TODAY        = new Date();
+const TARGET       = new Date('2026-06-01');
+
+const fmt = (d) => {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}`;
+};
+const fmtAmt = (n) => new Intl.NumberFormat('fr-FR',{style:'decimal',minimumFractionDigits:0}).format(n||0);
+const genId  = () => Math.random().toString(36).slice(2,10);
+
+// ─── DEFAULT DATA (shown only if bin is empty) ───────────────────────────────
+const DEFAULT_WORKS = [
+  { id:genId(), name:'Bathroom works (shower, WC, tiles)',          owner:'Enrico',     status:'In progress', eta:'2026-04-30', done:false },
+  { id:genId(), name:'Chimney removal + floor patch',               owner:'Pompeo',     status:'In progress', eta:'2026-04-25', done:false },
+  { id:genId(), name:'Painting 2nd coat + A/C units repaint',      owner:'Pompeo',     status:'Pending',     eta:'2026-05-07', done:false },
+  { id:genId(), name:'Electrical — LED spotlights finalized',      owner:'Pompeo',     status:'Pending',     eta:'2026-05-07', done:false },
+  { id:genId(), name:'Floor sanding & refinishing (Ecoservice)',   owner:'Ecoservice', status:'Pending',     eta:'2026-05-14', done:false },
+];
+const DEFAULT_PURCHASES = [
+  { id:genId(), name:'Sofa / couch', room:'Living room', owner:'Sergio/Michelangelo', status:'Ordered', eta:'2026-04-28', done:false, price:'1648', url:'' },
+
+  { id:genId(), name:'Bed (main bedroom)', room:'Main bedroom', owner:'Sergio/Michelangelo', status:'Ordered', eta:'2026-04-28', done:false, price:'959', url:'' },
+  { id:genId(), name:'Bed assembling', room:'Main bedroom', owner:'Owner', status:'Ordered', eta:'', done:false, price:'80', url:'' },
+
+  { id:genId(), name:'Bed (second bedroom)', room:'Second bedroom', owner:'Sergio/Michelangelo', status:'Ordered', eta:'2026-04-28', done:false, price:'919', url:'' },
+  { id:genId(), name:'Bed assembling', room:'Second bedroom', owner:'Owner', status:'Ordered', eta:'', done:false, price:'80', url:'' },
+
+  { id:genId(), name:'Toilet (Kleopatra)', room:'Main bathroom', owner:'Sergio', status:'Delivered', eta:'2026-04-28', done:false, price:'454', url:'https://www.banio.fr/pack-complet-wc-sur-pieds/3047602-toilette-compacte-retro-complete-kleopatra-11-avec-abattant-soft-close-5907548101235.html' },
+  { id:genId(), name:'Sink tap — old style chrome (paulgurkess)', room:'Main bathroom', owner:'Sergio', status:'Delivered', eta:'2026-04-28', done:false, price:'209', url:'' },
+  { id:genId(), name:'Shower (paulgurkess)', room:'Main bathroom', owner:'Sergio', status:'Delivered', eta:'2026-04-25', done:false, price:'522', url:'https://www.paulgurkesshop.fr' },
+  { id:genId(), name:'LED mirror 90cm (JAMUBOCHE)', room:'Main bathroom', owner:'Sergio', status:'Ordered', eta:'2026-05-01', done:false, price:'95', url:'https://www.amazon.fr/dp/B0F134Z7R6' },
+
+  { id:genId(), name:'Sink', room:'Guest WC', owner:'Sergio', status:'Delivered', eta:'2026-04-30', done:false, price:'248', url:'' },
+  { id:genId(), name:'Sink taps — old style chrome', room:'Guest WC', owner:'Sergio', status:'Delivered', eta:'2026-04-28', done:false, price:'148', url:'' },
+  { id:genId(), name:'LED mirror 60cm (JAMUBOCHE)', room:'Guest WC', owner:'Sergio', status:'Ordered', eta:'2026-05-01', done:false, price:'82', url:'https://www.amazon.fr/dp/B0F134Z7R6' },
+
+  { id:genId(), name:'Curtains — Sand&Snow linen (12 windows)', room:'Multiple rooms', owner:'Anna/Michelangelo', status:'In progress', eta:'2026-05-10', done:false, price:'2896', url:'https://www.sandsnowlinen.com/products/white-and-natural-color-block-linen-curtain' },
+  { id:genId(), name:'Curtain rods — matte black Ø28mm', room:'Multiple rooms', owner:'Yann', status:'Pending', eta:'2026-05-10', done:false, price:'', url:'' },
+  { id:genId(), name:'Blackout blinds (kitchen, studio, bathroom)', room:'Multiple rooms', owner:'Sergio/Anna', status:'Pending', eta:'2026-05-10', done:false, price:'', url:'' },
+];
+const DEFAULT_PAYMENTS = [
+  { id:genId(), name:'Removal of furniture', amount:1700, owner:'Yann', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'First % works start — 1/3 Pompeo', amount:4607, owner:'Pompeo', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'50% floor sanding', amount:2000, owner:'Ecoservice', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'50% A/C', amount:4482.5, owner:'Pompeo Brother', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'50% plumbing', amount:2216.5, owner:'Pompeo Brother', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'IKEA Kitchen', amount:6170.41, owner:'IKEA', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Rest 2/3 Pompeo', amount:5000, owner:'Pompeo', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'VAT floor sanding', amount:440, owner:'Ecoservice', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Extras plumbing and materials via Enrico (shower tray/tiles/boilers/shower glass)', amount:4155, owner:'Pompeo Brother', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Extra WC', amount:240, owner:'Pompeo Brother', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Yann', amount:2043, owner:'Yann', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Extra flooring labor (water damages/chimney labor only, not including the extra wood to be put on the floor)', amount:500, owner:'Yann', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'LED', amount:4550, owner:'Pompeo', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Door lock', amount:1200, owner:'Pompeo', status:'Paid', eta:'', done:true },
+  { id:genId(), name:'Paint A/C', amount:360, owner:'Michelangelo', status:'Pending', eta:'', done:false },
+  { id:genId(), name:'Rest flooring', amount:2000, owner:'Michelangelo', status:'Pending', eta:'', done:false },
+  { id:genId(), name:'Rest A/C', amount:4482.5, owner:'Michelangelo', status:'Pending', eta:'', done:false },
+  { id:genId(), name:'Rest plumbing', amount:2216.5, owner:'Michelangelo', status:'Pending', eta:'', done:false },
+  { id:genId(), name:'Rest 3/3 Pompeo', amount:5000, owner:'Pompeo', status:'Pending', eta:'', done:false },
+];
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function apiFetch(method, path, body) {
+  const res = await fetch('https://api.jsonbin.io' + path, {
+    method,
+    headers: { 'Content-Type':'application/json', 'X-Master-Key': API_KEY, ...(method==='GET'?{'X-Bin-Meta':'false'}:{}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ─── EDITABLE COMPONENTS ─────────────────────────────────────────────────────
+function EditText({ value, onChange, placeholder }) {
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(value);
+  const ref = useRef();
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const commit = () => { onChange(draft); setEditing(false); };
+  if (editing) return (
+    <input ref={ref} className="editable-input" value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key==='Enter') commit(); if (e.key==='Escape') { setEditing(false); setDraft(value); } }}
+    />
+  );
+  return <span className="editable" onClick={() => { setDraft(value); setEditing(true); }}>{value || <em style={{color:'var(--ink-4)'}}>{placeholder||'—'}</em>}</span>;
+}
+
+function EditSelect({ value, onChange, options }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef();
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  if (editing) return (
+    <select ref={ref} className="editable-select" value={value}
+      onChange={e => { onChange(e.target.value); setEditing(false); }}
+      onBlur={() => setEditing(false)}>
+      {options.map(o => <option key={o}>{o}</option>)}
+    </select>
+  );
+  return <span className="editable" onClick={() => setEditing(true)}>{value || '—'}</span>;
+}
+
+function EditDate({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef();
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const isOverdue = value && new Date(value+'T00:00:00') < TODAY;
+  if (editing) return (
+    <input ref={ref} type="date" className="editable-date" value={value||''}
+      onChange={e => { onChange(e.target.value); setEditing(false); }}
+      onBlur={() => setEditing(false)} />
+  );
+  return <span className={`editable date-display${isOverdue?' overdue':''}`} onClick={() => setEditing(true)}>{fmt(value)}</span>;
+}
+
+function StatusBadge({ value, onChange, options }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const cls = value.replace(' ','-');
+  return (
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <button className={`badge ${cls}`} onClick={() => setOpen(!open)}>{value}</button>
+      {open && (
+        <div style={{position:'absolute',top:'100%',left:0,background:'var(--bg)',border:'1px solid var(--rule)',zIndex:50,minWidth:120,marginTop:2}}>
+          {options.map(o => (
+            <div key={o} style={{padding:'7px 12px',cursor:'pointer',fontSize:12,color:'var(--ink)',transition:'background 0.1s'}}
+              onClick={() => { onChange(o); setOpen(false); }}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--bg-sand)'}
+              onMouseLeave={e=>e.currentTarget.style.background=''}
+            >{o}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditPrice({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(value);
+  const ref = useRef();
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const commit = () => {
+    const n = parseFloat(String(draft).replace(/[€\s,]/g,'').replace(',','.'));
+    onChange(isNaN(n) ? '' : String(n));
+    setEditing(false);
+  };
+  if (editing) return (
+    <input ref={ref} type="number" className="editable-input" value={draft} placeholder="0"
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key==='Enter') commit(); if (e.key==='Escape') { setEditing(false); setDraft(value); } }}
+      style={{width:90}}
+    />
+  );
+  const display = value && parseFloat(value) > 0 ? `€${fmtAmt(parseFloat(value))}` : null;
+  return (
+    <span className="price-cell" onClick={() => { setDraft(value); setEditing(true); }}>
+      {display || <em className="editable">—</em>}
+    </span>
+  );
+}
+
+function EditUrl({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(value);
+  const ref = useRef();
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const commit = () => { onChange(draft); setEditing(false); };
+  if (editing) return (
+    <input ref={ref} className="url-input" value={draft} placeholder="https://…"
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key==='Enter') commit(); if (e.key==='Escape') { setEditing(false); setDraft(value); } }}
+    />
+  );
+  if (value) return (
+    <span className="link-cell">
+      <a href={value} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>View ↗</a>
+      <span style={{marginLeft:6,cursor:'pointer',color:'var(--ink-4)',fontSize:10}} onClick={() => { setDraft(value); setEditing(true); }}>edit</span>
+    </span>
+  );
+  return <span className="link-cell"><span className="no-link" onClick={() => { setDraft(''); setEditing(true); }}>+ add link</span></span>;
+}
+
+// ─── ADD PANEL ───────────────────────────────────────────────────────────────
+function AddPanel({ open, onClose, type, onAdd }) {
+  const [form, setForm] = useState({});
+  useEffect(() => { if (open) setForm({}); }, [open]);
+  const set = (k,v) => setForm(f => ({...f,[k]:v}));
+  const submit = () => {
+    if (!form.name) return;
+    onAdd({ id:genId(), done:false, status:'Pending', ...form });
+    onClose();
+  };
+  return (
+    <>
+      <div className={`panel-overlay${open?' open':''}`} onClick={onClose} />
+      <div className={`add-panel${open?' open':''}`}>
+        <div className="panel-title">Add {type==='payment'?'Payment':type==='purchase'?'Purchase':'Task'}</div>
+        <div className="field-group">
+          <div className="field-label">Name</div>
+          <input className="field-input" value={form.name||''} onChange={e=>set('name',e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&submit()} autoFocus
+            placeholder={type==='payment'?'Payment description':'Task description'} />
+        </div>
+        {type==='payment' && (
+          <div className="field-group">
+            <div className="field-label">Amount (€)</div>
+            <input className="field-input" type="number" value={form.amount||''} onChange={e=>set('amount',parseFloat(e.target.value)||0)} placeholder="0" />
+          </div>
+        )}
+        {type==='purchase' && (
+          <div className="field-group">
+            <div className="field-label">Room</div>
+            <select className="field-input" value={form.room||ROOM_OPTS[0]} onChange={e=>set('room',e.target.value)}>
+              {ROOM_OPTS.map(r=><option key={r}>{r}</option>)}
+            </select>
+          </div>
+        )}
+        {type==='purchase' && (
+          <div className="field-group">
+            <div className="field-label">Price (€)</div>
+            <input className="field-input" type="number" value={form.price||''} onChange={e=>set('price',e.target.value)} placeholder="e.g. 129" />
+          </div>
+        )}
+        {type==='purchase' && (
+          <div className="field-group">
+            <div className="field-label">Product URL</div>
+            <input className="field-input" value={form.url||''} onChange={e=>set('url',e.target.value)} placeholder="https://…" />
+          </div>
+        )}
+        <div className="field-group">
+          <div className="field-label">Owner</div>
+          <input className="field-input" value={form.owner||''} onChange={e=>set('owner',e.target.value)} placeholder="Name" />
+        </div>
+        <div className="field-group">
+          <div className="field-label">Status</div>
+          <select className="field-input" value={form.status||'Pending'} onChange={e=>set('status',e.target.value)}>
+            {(type==='payment'?PAY_STATUS:type==='purchase'?PURCHASE_STATUS_OPTS:STATUS_OPTS).map(s=><option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="field-group">
+          <div className="field-label">ETA</div>
+          <input className="field-input" type="date" value={form.eta||''} onChange={e=>set('eta',e.target.value)} />
+        </div>
+        <div className="panel-actions">
+          <button className="btn-solid" onClick={submit}>Add</button>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const K = (n) => {
+  if (Math.abs(n) >= 1000) return '€' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  return '€' + Math.round(n);
+};
+
+
+const norm = (v) => String(v || '').trim().toLowerCase();
+const parseMoney = (v) => {
+  if (!v && v !== 0) return 0;
+  const n = parseFloat(String(v).replace(/[€\s]/g,'').replace(',','.'));
+  return isNaN(n) ? 0 : n;
+};
+const isPaidStatus = (p) => !!p.done || norm(p.status) === 'paid' || norm(p.status) === 'delivered';
+const isOrderedOrDelivered = (p) => ['ordered','delivered'].includes(norm(p.status));
+
+const COST_DRIVER_MODEL = [
+  { id:'painting', name:'Painting & woodwork', status:'Track', note:'Pompeo staged payments mapped here. Includes pending final third and A/C painting as a paint-related extra.', forecast:[['Wall and ceiling painting refurbishment',14110]], actual:['First % works start','Rest 2/3 Pompeo','Rest 3/3 Pompeo','Paint A/C'] },
+  { id:'bathrooms', name:'Bathrooms & plumbing', status:'Track', note:'Bathroom renovation + sanitary modification from Dec estimate. Enrico extras are shown under materials to avoid double counting.', forecast:[['Bathroom renovation work',11155],['Hydraulic/sanitary modification',4800],['Boiler bathroom',800]], actual:['50% Plumbing','Rest plumbing','Extra WC'] },
+  { id:'materials', name:'Materials / fixtures', status:'Track', note:'Includes the mixed Enrico extras line because it contains shower tray, tiles, boilers and shower glass. This remains a judgement allocation.', forecast:[['Estimate in materials: toilets, shower tray, sink, faucets, tiles',6000],['Boiler kitchen',600]], actual:['Extras plumbing and materials via Enrico'] },
+  { id:'ikea', name:'IKEA kitchen + installation/dismantling', status:'Track', note:'Forecast combines IKEA kitchen/install (€3,819) and kitchen dismantling (€1,800) because the paid IKEA line includes both.', forecast:[['IKEA Kitchen incl. installation',3819],['Kitchen dismantling and disposal',1800]], actual:['IKEA Kitchen'] },
+  { id:'floor', name:'Floor sanding & flooring extras', status:'Track', note:'Includes the water damage/chimney labour as added scope.', forecast:[['Floor sanding: entire apartment',4600]], actual:['50% floor sanding','VAT floor sanding','Rest flooring','Extra flooring labor'] },
+  { id:'ac', name:'A/C Mitsubishi split', status:'Track', note:'Supply and installation split across 50% and remaining payment.', forecast:[['Air conditioning: Mitsubishi trial split',7000]], actual:['50% A/C','Rest A/C'] },
+  { id:'electricity', name:'Electricity & LED', status:'Check', note:'LED payment is included here. Please confirm with Yann what the €4.5K covers, as current visible LED scope sounds limited.', forecast:[['Electricity: 40A to 60A switch + living room socket',1200],['Door lock fix/change',500],['LED lighting',0]], actual:['LED','Door lock'] },
+  { id:'removal', name:'General removal / furniture', status:'Added after Dec', note:'Added after the Dec estimate, so forecast is €0 by design.', forecast:[['Not included in Dec 2025 estimate',0]], actual:['Removal of furniture'] },
+  { id:'yann', name:"Yann's fee", status:'Track', note:'Agreed as 8% of contractor total VAT included. Forecast uses €55,731.50 × 8% = €4,458.52. Paid so far is €2,043.', forecast:[['8% of contractor total VAT included',4458.52]], actual:['Yann'] },
+];
+
+const matchPayment = (p, terms) => {
+  const n = norm(p.name);
+  return terms.some(t => n.includes(norm(t)));
+};
+const costDriverRows = (payments) => COST_DRIVER_MODEL.map(driver => {
+  const actualItems = payments.filter(p => matchPayment(p, driver.actual)).map(p => ({ name:p.name, amount:p.amount || 0, status:p.status || '', owner:p.owner || '' }));
+  const forecastItems = Array.isArray(driver.forecast)
+    ? driver.forecast
+    : [[driver.name || 'Forecast', Number(driver.forecast) || 0]];
+  const forecastTotal = forecastItems.reduce((s,x)=>s+(Number(Array.isArray(x) ? x[1] : x.amount) || 0),0);
+  const spent = actualItems.reduce((s,x)=>s+(x.amount||0),0);
+  const paid = actualItems.filter(x => norm(x.status)==='paid').reduce((s,x)=>s+(x.amount||0),0);
+  const pending = actualItems.filter(x => norm(x.status)!=='paid').reduce((s,x)=>s+(x.amount||0),0);
+  return { ...driver, forecastItems, forecast: forecastTotal, spent, paid, pending, diff: spent - forecastTotal, actualItems };
+});
+
+const hydratePurchase = (p) => {
+  const base = DEFAULT_PURCHASES.find(d => norm(d.name) === norm(p.name));
+  if (!base) return p;
+  return {
+    ...base,
+    ...p,
+    room: p.room || base.room,
+    owner: p.owner || base.owner,
+    status: p.status || base.status,
+    eta: p.eta || base.eta,
+    price: (p.price !== undefined && p.price !== null && p.price !== '') ? p.price : base.price,
+    url: p.url || base.url,
+  };
+};
+const normalizePayment = (p) => {
+  const st = norm(p.status);
+  const status = st === 'paid' ? 'Paid' : st === 'overdue' ? 'Overdue' : 'Pending';
+  return { ...p, status, done: status === 'Paid' || !!p.done };
+};
+
+// ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
+function OverviewTab({ works, purchases, payments, onOpenCostDrivers }) {
+  const [budget, setBudget]           = useState(66367);
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [budgetDraft, setBudgetDraft]   = useState('66367');
+  const budgetRef = useRef();
+  useEffect(() => { if (editingBudget && budgetRef.current) budgetRef.current.focus(); }, [editingBudget]);
+
+  const start    = new Date('2026-01-06');
+  const tlPct    = Math.min(100, Math.max(0, ((TODAY-start)/(TARGET-start))*100));
+  const daysLeft = Math.max(0, Math.round((TARGET-TODAY)/86400000));
+
+  const parsePrice = v => { if (!v && v!==0) return 0; const n=parseFloat(String(v).replace(/[€\s]/g,'').replace(',','.')); return isNaN(n)?0:n; };
+
+  // ── Payment buckets ──
+  const paid        = payments.filter(isPaidStatus).reduce((s,p)=>s+(p.amount||0),0);
+  const committedPay= payments.filter(p=>!isPaidStatus(p)).reduce((s,p)=>s+(p.amount||0),0);
+  const totalPay    = payments.reduce((s,p)=>s+(p.amount||0),0);
+
+  // ── Purchase buckets ──
+  const paidPurch   = purchases.filter(p=>norm(p.status)==='delivered').reduce((s,p)=>s+parsePrice(p.price),0);
+  const orderedPurch= purchases.filter(isOrderedOrDelivered).reduce((s,p)=>s+parsePrice(p.price),0);
+  const pendingPurch= purchases.filter(p=>['pending','in progress','blocked'].includes(norm(p.status))&&parsePrice(p.price)>0).reduce((s,p)=>s+parsePrice(p.price),0);
+  const totalPurch  = purchases.reduce((s,p)=>s+parsePrice(p.price),0);
+
+  // ── Top-level budget numbers ──
+  const totalPaid      = paid + paidPurch;
+  const totalCommitted = committedPay + orderedPurch;   // pending payments + ordered purchases
+  const totalForecast  = totalPay + totalPurch;          // everything budgeted
+  const worksCommitted = totalPay;
+  const purchasesCommitted = totalPurch;
+  const worksPaid = paid;
+  const purchasesPaid = paidPurch;
+  const purchasesOrderedToDate = orderedPurch;
+  const committedSplitMax = Math.max(worksCommitted, purchasesCommitted, purchasesOrderedToDate, 1);
+  const paidSplitMax = Math.max(worksPaid, purchasesPaid, 1);
+  const overBudget     = Math.max(0, totalForecast - budget);
+  const isOver         = totalForecast > budget;
+  const underRemaining = Math.max(0, budget - totalForecast);
+
+  // Bar percentages (capped to avoid visual breaking)
+  const barBudget = budget;
+  const barMax    = Math.max(budget, totalForecast) * 1.05; // 5% headroom
+  const paidPct       = (totalPaid / barMax) * 100;
+  const committedPct  = (totalCommitted / barMax) * 100;
+  const remainingPct  = (underRemaining / barMax) * 100;
+  const overPct       = (overBudget / barMax) * 100;
+  const budgetLinePct = (budget / barMax) * 100;
+
+  // ── Cost drivers — reconciled from Dec forecast and Paid/Pending actuals ──
+  const drivers = costDriverRows(payments)
+    .filter(d => d.spent > 0 || d.forecast > 0)
+    .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
+    .slice(0, 6)
+    .map(d => ({ cat:d.name, amt:d.spent, est:d.forecast, status:d.status, note:d.note }));
+
+  // ── Remaining decisions ──
+  const risks = [
+    ...purchases.filter(p=>!['Ordered','Delivered'].includes(p.status)&&parsePrice(p.price)>0)
+      .map(p=>({ name:p.name, est:parsePrice(p.price), status:'Pending', risk:'medium' })),
+    ...purchases.filter(p=>!p.price||parsePrice(p.price)===0)
+      .slice(0,4).map(p=>({ name:p.name, est:null, status:'No price', risk:'low' })),
+  ].slice(0,8);
+
+  // ── Urgent ──
+  const allTasks = [...works,...purchases];
+  const urgent = [
+    ...allTasks.filter(t=>!t.done&&t.status==='Blocked').map(t=>({...t,urgency:'high',tag:'Blocked'})),
+    ...allTasks.filter(t=>!t.done&&t.eta&&new Date(t.eta+'T00:00:00')<TODAY&&!['Done','Delivered'].includes(t.status)).map(t=>({...t,urgency:'high',tag:'Overdue'})),
+    ...works.filter(t=>!t.done&&t.status==='In progress').sort((a,b)=>(a.eta||'z').localeCompare(b.eta||'z')).slice(0,3).map(t=>({...t,urgency:'medium',tag:'In progress'})),
+  ].filter((t,i,arr)=>arr.findIndex(x=>x.id===t.id)===i).slice(0,6);
+
+  const commitBadge = isOver
+    ? { bg:'#FCEBEB', col:'#A32D2D', text:`Over budget by ${K(overBudget)}` }
+    : { bg:'#FAEEDA', col:'#854F0B', text:`${K(underRemaining)} remaining` };
+
+  return (
+    <div>
+      {/* ─── EDITORIAL BANNER ─── */}
+      <svg className="editorial-banner" viewBox="0 0 1280 210" xmlns="http://www.w3.org/2000/svg" style={{display:'block',width:'100%',height:'auto'}}>
+        <rect width="430" height="210" fill="#e4ddd2"/><rect x="430" width="850" height="210" fill="#dfd9cf"/>
+        <text x="38" y="44" fontFamily="'DM Sans',sans-serif" fontSize="9.5" letterSpacing="3.5" fill="#9a9490">PROJET DE RÉNOVATION · BEAUSOLEIL</text>
+        <text x="36" y="104" fontFamily="'Playfair Display',Georgia,serif" fontSize="54" fontWeight="500" fill="#1e1c1a" letterSpacing="1">Beausoleil</text>
+        <line x1="36" y1="117" x2="390" y2="117" stroke="#b8b2aa" strokeWidth="0.75"/>
+        <text x="36" y="136" fontFamily="'DM Sans',sans-serif" fontSize="11" fill="#7a7672" letterSpacing="1.5">Côte d'Azur  ·  Appartement  ·  2026</text>
+        <line x1="430" y1="16" x2="430" y2="194" stroke="#c8c2ba" strokeWidth="0.75"/>
+        <rect x="430" y="22" width="850" height="152" fill="#e0dace"/>
+        <rect x="430" y="175" width="850" height="35" fill="#c8c0b4"/>
+        {[...Array(14)].map((_,i)=>(<React.Fragment key={i}><line x1={440+i*60} y1="175" x2={468+i*60} y2="210" stroke="#b0a89c" strokeWidth="0.5" opacity="0.65"/><line x1={468+i*60} y1="175" x2={440+i*60} y2="210" stroke="#b0a89c" strokeWidth="0.5" opacity="0.65"/></React.Fragment>))}
+        <text x="1270" y="205" fontFamily="'DM Sans',sans-serif" fontSize="9" letterSpacing="2.5" fill="#a8a29a" textAnchor="end">EN COURS · AVR. 2026</text>
+      </svg>
+
+      {/* ─── 1. BUDGET STATUS — top priority ─── */}
+      <div className="ov-section">
+        <div className="ov-section-title">Budget status</div>
+        <div className="ov-status-grid">
+          {/* Total budget — editable */}
+          <div className="ov-status-card primary">
+            <div className="ov-status-label">Total budget</div>
+            <div className="ov-status-value" style={{cursor:'pointer'}} onClick={()=>{ setBudgetDraft(String(budget)); setEditingBudget(true); }}>
+              {editingBudget
+                ? <input ref={budgetRef}
+                    style={{fontFamily:'var(--font-mono)',fontSize:'inherit',width:90,border:'none',borderBottom:'1px solid var(--ink-3)',background:'transparent',outline:'none',color:'inherit'}}
+                    value={budgetDraft} onChange={e=>setBudgetDraft(e.target.value)}
+                    onBlur={()=>{ const n=parseFloat(budgetDraft.replace(/[^\d.]/g,'')); if(!isNaN(n)&&n>0) setBudget(n); setEditingBudget(false); }}
+                    onKeyDown={e=>{ if(e.key==='Enter'){ const n=parseFloat(budgetDraft.replace(/[^\d.]/g,'')); if(!isNaN(n)&&n>0) setBudget(n); setEditingBudget(false); } }}
+                    onClick={e=>e.stopPropagation()}
+                  />
+                : K(budget)
+              }
+            </div>
+            <div className="ov-status-sub">click to edit</div>
+          </div>
+          {/* Total committed */}
+          <div className={`ov-status-card${isOver?' danger':''}`}>
+            <div className="ov-status-label">Total committed</div>
+            <div className="ov-status-value">{K(totalForecast)}</div>
+            <div className="ov-status-sub" style={{color: isOver?'#A32D2D':'var(--ink-3)'}}>
+              {Math.round((totalForecast/budget)*100)}% of budget · works total + purchase forecast
+            </div>
+            <div className="ov-mini-split" aria-label="Committed split">
+              <div className="ov-mini-row"><span>Works total</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(worksCommitted/committedSplitMax)*100)}%`,background:'#BA7517'}} /></span><span className="ov-mini-amt">{K(worksCommitted)}</span></div>
+              <div className="ov-mini-row"><span>Purchases forecast</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(purchasesCommitted/committedSplitMax)*100)}%`,background:'#8B7355'}} /></span><span className="ov-mini-amt">{K(purchasesCommitted)}</span></div>
+              <div className="ov-mini-row"><span>Ordered purchases</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(purchasesOrderedToDate/committedSplitMax)*100)}%`,background:'#5E4D39'}} /></span><span className="ov-mini-amt">{K(purchasesOrderedToDate)}</span></div>
+            </div>
+          </div>
+          {/* Total paid */}
+          <div className="ov-status-card">
+            <div className="ov-status-label">Total paid</div>
+            <div className="ov-status-value green">{K(totalPaid)}</div>
+            <div className="ov-status-sub">{Math.round((totalPaid/budget)*100)}% paid · works paid + delivered purchases</div>
+            <div className="ov-mini-split" aria-label="Paid split">
+              <div className="ov-mini-row"><span>Works paid</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(worksPaid/paidSplitMax)*100)}%`,background:'#3B6D11'}} /></span><span className="ov-mini-amt">{K(worksPaid)}</span></div>
+              <div className="ov-mini-row"><span>Delivered purchases</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(purchasesPaid/paidSplitMax)*100)}%`,background:'#6F8B55'}} /></span><span className="ov-mini-amt">{K(purchasesPaid)}</span></div>
+              <div className="ov-mini-row"><span>Ordered purchases</span><span className="ov-mini-track"><span className="ov-mini-fill" style={{display:'block',width:`${Math.max(4,(purchasesOrderedToDate/Math.max(worksPaid,purchasesOrderedToDate,1))*100)}%`,background:'#8B7355'}} /></span><span className="ov-mini-amt">{K(purchasesOrderedToDate)}</span></div>
+            </div>
+          </div>
+          {/* Status badge */}
+          <div className="ov-status-card" style={{background:commitBadge.bg,borderColor:commitBadge.col+'44'}}>
+            <div className="ov-status-label" style={{color:commitBadge.col}}>Budget status</div>
+            <div className="ov-status-value" style={{color:commitBadge.col,fontSize:16}}>{commitBadge.text}</div>
+            <div className="ov-status-sub" style={{color:commitBadge.col+'aa'}}>{daysLeft} days to completion</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2. BUDGET PROGRESS BAR ─── */}
+      <div className="ov-section">
+        <div className="ov-bar-wrap">
+          <div className="ov-bar-track">
+            {/* Paid segment — green */}
+            <div className="ov-bar-seg" style={{width:`${Math.min(paidPct,100)}%`,background:'#3B6D11'}} />
+            {/* Committed segment — amber */}
+            <div className="ov-bar-seg" style={{width:`${Math.min(committedPct,100-paidPct)}%`,background:'#BA7517'}} />
+            {/* Remaining segment — light */}
+            {!isOver && <div className="ov-bar-seg" style={{width:`${Math.min(remainingPct,100-paidPct-committedPct)}%`,background:'var(--bg-mid)'}} />}
+            {/* Over-budget segment — red, starts at budget line */}
+            {isOver && <div className="ov-bar-seg" style={{width:`${Math.min(overPct,100-paidPct-committedPct)}%`,background:'#A32D2D'}} />}
+            {/* Budget line marker */}
+            <div className="ov-bar-marker" style={{left:`${budgetLinePct}%`}} title={`Budget: ${K(budget)}`} />
+          </div>
+          <div className="ov-bar-legend">
+            <div className="ov-bar-leg-item"><span className="ov-bar-dot" style={{background:'#3B6D11'}} />Paid — {K(totalPaid)}</div>
+            <div className="ov-bar-leg-item"><span className="ov-bar-dot" style={{background:'#BA7517'}} />Committed — {K(totalCommitted)}</div>
+            {isOver
+              ? <div className="ov-bar-leg-item"><span className="ov-bar-dot" style={{background:'#A32D2D'}} />Over budget — {K(overBudget)}</div>
+              : <div className="ov-bar-leg-item"><span className="ov-bar-dot" style={{background:'var(--bg-mid)',border:'1px solid var(--rule)'}} />Remaining — {K(underRemaining)}</div>
+            }
+            <div className="ov-bar-leg-item" style={{marginLeft:'auto',color:'var(--ink-4)',fontSize:11}}>│ Budget line: {K(budget)}</div>
+          </div>
+          {isOver && (
+            <div className="ov-overbudget-banner">
+              ⚠ {K(totalForecast)} committed ({Math.round((totalForecast/budget)*100)}%) — over budget by {K(overBudget)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── 3. FINANCIAL BREAKDOWN ─── */}
+      <div className="ov-section">
+        <div className="ov-section-title">Financial breakdown</div>
+        <div className="ov-breakdown-wrap">
+          {[
+            { label:'Paid', sublabel:'Locked — cannot change', amt:totalPaid, bar:totalPaid/Math.max(totalForecast,1), col:'#3B6D11', bgcol:'#EAF3DE' },
+            { label:'Committed, unpaid', sublabel:'Agreed but not yet transferred', amt:totalCommitted, bar:totalCommitted/Math.max(totalForecast,1), col:'#BA7517', bgcol:'#FAEEDA' },
+            { label:'Uncommitted', sublabel:'Forecast but no order placed', amt:pendingPurch, bar:pendingPurch/Math.max(totalForecast,1), col:'var(--ink-4)', bgcol:'var(--bg-mid)' },
+          ].map(r=>(
+            <div key={r.label} className="ov-breakdown-row">
+              <div className="ov-breakdown-left">
+                <div className="ov-breakdown-label" style={{color:r.col}}>{r.label}</div>
+                <div className="ov-breakdown-sub">{r.sublabel}</div>
+              </div>
+              <div className="ov-breakdown-bar-wrap">
+                <div className="ov-breakdown-bar-track">
+                  <div className="ov-breakdown-bar-fill" style={{width:`${Math.min(r.bar*100,100)}%`,background:r.col,opacity:0.85}} />
+                </div>
+              </div>
+              <div className="ov-breakdown-amt" style={{color:r.col}}>{K(r.amt)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── 4. COST DRIVERS ─── */}
+      <div className="ov-section">
+        <div className="ov-section-title">Cost drivers</div>
+        <div className="ov-drivers-wrap">
+          <div className="ov-drivers-head"><span>Category</span><span>Spent</span><span>Status</span></div>
+          {drivers.map(d=>{
+            const diff = d.est > 0 ? d.amt - d.est : d.amt;
+            const over = diff > 0;
+            const under= diff < 0;
+            return (
+              <div key={d.cat} className="ov-driver-row clickable" onClick={onOpenCostDrivers} title="Open Cost Drivers detail">
+                <span className="ov-driver-name">{d.cat}</span>
+                <span className="ov-driver-amt">{K(d.amt)}</span>
+                <span className={`ov-driver-diff${over?' over':under?' under':''}`}>
+                  {over ? `Over by ${K(diff)}` : under ? `Under by ${K(Math.abs(diff))}` : 'On track'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ─── 5. REMAINING DECISIONS ─── */}
+      <div className="ov-section">
+        <div className="ov-section-title">Remaining decisions</div>
+        <div className="ov-risk-wrap">
+          <div className="ov-risk-head"><span>Item</span><span>Est. cost</span><span>Status</span></div>
+          {risks.map((r,i)=>(
+            <div key={i} className={`ov-risk-row${r.risk==='high'?' high':r.risk==='medium'?' medium':''}`}>
+              <span className="ov-risk-name">{r.name}</span>
+              <span className="ov-risk-est">{r.est ? K(r.est) : '?'}</span>
+              <span className={`ov-risk-status ${r.risk}`}>{r.status}</span>
+            </div>
+          ))}
+          {risks.length === 0 && <div className="empty-state">All purchases committed.</div>}
+        </div>
+      </div>
+
+      {/* ─── 6. TIMELINE + NEEDS ATTENTION ─── */}
+      <div className="ov-section">
+        <div className="ov-section-title">Needs attention</div>
+        <div className="deadline-section" style={{marginBottom:12}}>
+          <div className="deadline-header">
+            <span className="deadline-title">Project timeline</span>
+            <span className="deadline-detail">{daysLeft} days remaining · {Math.round(tlPct)}% elapsed</span>
+          </div>
+          <div className="deadline-bar-track">
+            <div className="deadline-bar-fill" style={{width:`${tlPct}%`}} />
+            <div className="deadline-bar-marker" style={{left:`${tlPct}%`}} data-label="Today" />
+          </div>
+          <div className="deadline-dates"><span>6 Jan 2026</span><span>1 Jun 2026</span></div>
+        </div>
+        {urgent.length === 0
+          ? <div className="empty-state">Nothing urgent — project on track.</div>
+          : <div className="urgent-list">{urgent.map(t=>(
+              <div key={t.id+(t.tag||'')} className={`urgent-item${t.urgency==='high'?' high':' medium'}`}>
+                <span className="urgent-item-name">{t.name}</span>
+                <span className="urgent-item-tag">{t.tag}</span>
+                <span className={`badge ${(t.status||'').replace(' ','-')} urgent-item-badge`}>{t.status}</span>
+              </div>
+            ))}</div>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ─── WORKS TAB ───────────────────────────────────────────────────────────────
+function WorksTab({ works, setWorks }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const update = (id,k,v) => setWorks(ts => ts.map(t => t.id===id ? {...t,[k]:v} : t));
+  const toggle = (id) => setWorks(ts => ts.map(t => t.id===id ? {...t, done:!t.done, status:!t.done?'Done':'Pending'} : t));
+  const del    = (id) => setWorks(ts => ts.filter(t => t.id!==id));
+  const add    = (item) => setWorks(ts => [...ts, item]);
+
+  // ── Gantt chart ──
+  // Date range: today - 7 days → June 1
+  const ganttStart = new Date('2026-04-14'); // fixed start so chart is stable
+  const ganttEnd   = new Date('2026-06-01');
+  const totalDays  = Math.ceil((ganttEnd - ganttStart) / 86400000);
+
+  // Generate month headers between ganttStart and ganttEnd
+  const months = [];
+  let cur = new Date(ganttStart.getFullYear(), ganttStart.getMonth(), 1);
+  while (cur <= ganttEnd) {
+    const nextMonth = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+    const segStart  = Math.max(0, Math.ceil((cur - ganttStart)/86400000));
+    const segEnd    = Math.min(totalDays, Math.ceil((nextMonth - ganttStart)/86400000));
+    months.push({ label: cur.toLocaleDateString('en-GB',{month:'short'}), left: (segStart/totalDays)*100, width: ((segEnd-segStart)/totalDays)*100 });
+    cur = nextMonth;
+  }
+
+  const todayPct = Math.min(100, Math.max(0, ((TODAY - ganttStart)/86400000 / totalDays)*100));
+
+  const ganttItems = [...works].sort((a,b) => {
+    const order = {'In progress':0,'Blocked':1,'Pending':2,'Done':3};
+    return (order[a.status]??2) - (order[b.status]??2);
+  });
+
+  const barStyle = (t) => {
+    // Use eta as end date; start = today or 1 week ago for in-progress, or eta-14d for pending
+    if (!t.eta) return null;
+    const etaDate = new Date(t.eta+'T00:00:00');
+    let startDate;
+    if (t.status === 'In progress') startDate = new Date(Math.min(TODAY.getTime(), etaDate.getTime() - 7*86400000));
+    else if (t.status === 'Done') startDate = new Date(etaDate.getTime() - 5*86400000);
+    else startDate = new Date(Math.max(ganttStart.getTime(), TODAY.getTime()));
+    const left = Math.max(0, ((startDate - ganttStart)/86400000 / totalDays)*100);
+    const right = Math.min(100, ((etaDate - ganttStart)/86400000 / totalDays)*100);
+    const width = Math.max(0.5, right - left);
+    return { left: `${left}%`, width: `${width}%` };
+  };
+
+  return (
+    <div>
+      {/* ── Gantt chart ── */}
+      <div className="gantt-wrap">
+        <div className="gantt-title">Works — Gantt chart</div>
+        <div className="gantt-inner">
+          <div className="gantt-header">
+            {months.map(m => (
+              <div key={m.label+m.left} className="gantt-month" style={{position:'absolute',left:`${m.left}%`,width:`${m.width}%`}}>{m.label}</div>
+            ))}
+            <div className="gantt-today-line" style={{left:`${todayPct}%`}} title="Today" />
+          </div>
+          {ganttItems.map(t => {
+            const bs = barStyle(t);
+            const cls = t.status.replace(' ','-');
+            return (
+              <div key={t.id} className="gantt-row">
+                <div className={`gantt-label${t.done?' done-text':''}`} title={t.name}>{t.name}</div>
+                <div className="gantt-track">
+                  {bs && (
+                    <div className={`gantt-bar ${cls}`} style={bs}>
+                      <span className="gantt-bar-label">{t.status === 'Pending' ? '' : t.owner}</span>
+                    </div>
+                  )}
+                  {!bs && t.status !== 'Done' && (
+                    <div style={{position:'absolute',left:'2px',top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--ink-4)',fontStyle:'italic'}}>no ETA</div>
+                  )}
+                </div>
+                <span className="gantt-owner">{t.eta ? fmt(t.eta) : ''}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="gantt-legend">
+          {[['In-progress','var(--blue)','In progress'],['Pending','var(--ink-4)','Pending'],['Blocked','var(--terracotta)','Blocked'],['Done','var(--green)','Done']].map(([cls,col,lbl])=>(
+            <div key={cls} className="gantt-legend-item"><div className="gantt-legend-dot" style={{background:col}} />{lbl}</div>
+          ))}
+          <div className="gantt-legend-item"><div className="gantt-legend-dot" style={{background:'var(--terracotta)',opacity:0.5,width:2}} />Today</div>
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="table-container">
+        <table>
+          <thead><tr><th></th><th>Task</th><th>Owner</th><th>Status</th><th>ETA</th><th></th></tr></thead>
+          <tbody>
+            {works.map(t => (
+              <tr key={t.id} className={t.done?'done-row':''}>
+                <td><input type="checkbox" className="check" checked={!!t.done} onChange={()=>toggle(t.id)} /></td>
+                <td><span className={t.done?'done-text':''}><EditText value={t.name} onChange={v=>update(t.id,'name',v)} /></span></td>
+                <td><EditText value={t.owner} onChange={v=>update(t.id,'owner',v)} placeholder="Owner" /></td>
+                <td><StatusBadge value={t.status} onChange={v=>update(t.id,'status',v)} options={STATUS_OPTS} /></td>
+                <td><EditDate value={t.eta} onChange={v=>update(t.id,'eta',v)} /></td>
+                <td><button className="delete-btn" onClick={()=>del(t.id)}>×</button></td>
+              </tr>
+            ))}
+            <tr className="add-row"><td colSpan={6}><button className="add-btn" onClick={()=>setPanelOpen(true)}>+ Add task</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      {/* Mobile cards */}
+      <div className="mobile-card">
+        <div className="card-list">
+          {works.map(t => {
+            const overdue = t.eta && new Date(t.eta+'T00:00:00') < TODAY && !t.done;
+            return (
+              <div key={t.id} className={`item-card${t.done?' done-card':''}`}>
+                <div className="item-card-check">
+                  <input type="checkbox" className="check" checked={!!t.done} onChange={()=>toggle(t.id)} />
+                </div>
+                <div className="item-card-body">
+                  <div className={`item-card-name${t.done?' done-text':''}`}>{t.name}</div>
+                  <div className="item-card-primary">
+                    <span className={`badge ${t.status.replace(' ','-')}`} onClick={()=>{
+                      const next = STATUS_OPTS[(STATUS_OPTS.indexOf(t.status)+1)%STATUS_OPTS.length];
+                      update(t.id,'status',next);
+                    }}>{t.status}</span>
+                  </div>
+                  <div className="item-card-secondary">
+                    <span className="item-card-owner">{t.owner}</span>
+                    {t.eta && <><span className="item-card-dot">·</span><span className={`item-card-eta${overdue?' overdue':''}`}>ETA {fmt(t.eta)}</span></>}
+                  </div>
+                </div>
+                <button className="item-card-del" onClick={()=>del(t.id)}>×</button>
+              </div>
+            );
+          })}
+        </div>
+        <button className="mobile-add-btn" onClick={()=>setPanelOpen(true)}>+ Add task</button>
+      </div>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} type="task" onAdd={add} />
+    </div>
+  );
+}
+
+// ─── PURCHASES TAB ───────────────────────────────────────────────────────────
+function PurchasesTab({ purchases, setPurchases }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const update = (id,k,v) => setPurchases(ps => ps.map(p => p.id===id ? {...p,[k]:v} : p));
+  const toggle = (id) => setPurchases(ps => ps.map(p => p.id===id ? {...p, done:!p.done, status:!p.done?'Delivered':'Pending'} : p));
+  const del    = (id) => setPurchases(ps => ps.filter(p => p.id!==id));
+  const add    = (item) => setPurchases(ps => [...ps, {...item, room:item.room||ROOM_OPTS[0]}]);
+
+  const byRoom = ROOM_OPTS.reduce((acc,r) => {
+    const items = purchases.filter(p=>p.room===r);
+    if (items.length) acc.push({room:r,items});
+    return acc;
+  },[]);
+  const knownRooms = new Set(ROOM_OPTS);
+  const other = purchases.filter(p=>!knownRooms.has(p.room));
+  if (other.length) byRoom.push({room:'Other',items:other});
+
+  // ── Cost calculations ──
+  const parsePrice = (v) => {
+    if (!v && v !== 0) return 0;
+    // strip any non-numeric except dot and comma, then normalise
+    const s = String(v).replace(/[€\s]/g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  };
+  const seen = new Set();
+  const dedupedPurchases = purchases.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+  const withPrice  = dedupedPurchases.filter(p => parsePrice(p.price) > 0);
+  const noPrice    = dedupedPurchases.filter(p => parsePrice(p.price) <= 0);
+  const forecasted = dedupedPurchases.reduce((s,p) => s + parsePrice(p.price), 0);
+  const actual     = dedupedPurchases
+    .filter(isOrderedOrDelivered)
+    .reduce((s,p) => s + parsePrice(p.price), 0);
+  const pct = forecasted > 0 ? Math.round((actual / forecasted) * 100) : 0;
+
+  return (
+    <div>
+      {/* ── Cost summary bar ── */}
+      <div className="purchase-summary">
+        <div className="purchase-summary-card">
+          <div className="purchase-summary-label">Forecasted total</div>
+          <div className="purchase-summary-value forecasted">€{fmtAmt(forecasted)}</div>
+          {noPrice.length > 0 && (
+            <div className="purchase-missing">{noPrice.length} item{noPrice.length>1?'s':''} without price</div>
+          )}
+        </div>
+        <div className="purchase-summary-card">
+          <div className="purchase-summary-label">Ordered to date</div>
+          <div className="purchase-summary-value actual">€{fmtAmt(actual)}</div>
+          <div className="purchase-progress-wrap">
+            <div className="purchase-progress-label">{pct}% of forecast</div>
+            <div className="purchase-progress-track">
+              <div className="purchase-progress-fill" style={{width: `${Math.min(pct,100)}%`}} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="table-container">
+        <table>
+          <thead><tr><th></th><th>Item</th><th>Room</th><th>Owner</th><th>Status</th><th>ETA</th><th>Price</th><th>Link</th><th></th></tr></thead>
+          <tbody>
+            {byRoom.map(({room,items}) => (
+              <React.Fragment key={room}>
+                <tr className="room-row"><td colSpan={9}><span className="room-label">{room}</span></td></tr>
+                {items.map(p => (
+                  <tr key={p.id} className={p.done?'done-row':''}>
+                    <td><input type="checkbox" className="check" checked={!!p.done} onChange={()=>toggle(p.id)} /></td>
+                    <td><span className={p.done?'done-text':''}><EditText value={p.name} onChange={v=>update(p.id,'name',v)} /></span></td>
+                    <td><EditSelect value={p.room} onChange={v=>update(p.id,'room',v)} options={ROOM_OPTS} /></td>
+                    <td><EditText value={p.owner} onChange={v=>update(p.id,'owner',v)} placeholder="Owner" /></td>
+                    <td><StatusBadge value={p.status} onChange={v=>update(p.id,'status',v)} options={PURCHASE_STATUS_OPTS} /></td>
+                    <td><EditDate value={p.eta} onChange={v=>update(p.id,'eta',v)} /></td>
+                    <td><EditPrice value={p.price||''} onChange={v=>update(p.id,'price',v)} /></td>
+                    <td><EditUrl value={p.url||''} onChange={v=>update(p.id,'url',v)} /></td>
+                    <td><button className="delete-btn" onClick={()=>del(p.id)}>×</button></td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+            <tr className="add-row"><td colSpan={9}><button className="add-btn" onClick={()=>setPanelOpen(true)}>+ Add purchase</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      {/* Mobile cards */}
+      <div className="mobile-card">
+        <div className="card-list">
+          {byRoom.map(({room,items}) => (
+            <React.Fragment key={room}>
+              <div className="card-room-label">{room}</div>
+              {items.map(p => {
+                const overdue = p.eta && new Date(p.eta+'T00:00:00') < TODAY && !p.done;
+                const priceVal = parsePrice(p.price);
+                return (
+                  <div key={p.id} className={`item-card${p.done?' done-card':''}`}>
+                    <div className="item-card-check">
+                      <input type="checkbox" className="check" checked={!!p.done} onChange={()=>toggle(p.id)} />
+                    </div>
+                    <div className="item-card-body">
+                      <div className={`item-card-name${p.done?' done-text':''}`}>{p.name}</div>
+                      <div className="item-card-primary">
+                        {priceVal > 0
+                          ? <span className="item-card-price-big">€{fmtAmt(priceVal)}</span>
+                          : <span className="item-card-price-empty">No price</span>
+                        }
+                        <span className={`badge ${p.status.replace(' ','-')}`} onClick={()=>{
+                          const next = PURCHASE_STATUS_OPTS[(PURCHASE_STATUS_OPTS.indexOf(p.status)+1)%PURCHASE_STATUS_OPTS.length];
+                          update(p.id,'status',next);
+                        }}>{p.status}</span>
+                      </div>
+                      <div className="item-card-secondary">
+                        {p.owner && <span className="item-card-owner">{p.owner}</span>}
+                        {p.eta && <><span className="item-card-dot">·</span><span className={`item-card-eta${overdue?' overdue':''}`}>ETA {fmt(p.eta)}</span></>}
+                        {p.url && <><span className="item-card-dot">·</span><span className="item-card-link"><a href={p.url} target="_blank" rel="noopener noreferrer">View ↗</a></span></>}
+                      </div>
+                    </div>
+                    <button className="item-card-del" onClick={()=>del(p.id)}>×</button>
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+        <button className="mobile-add-btn" onClick={()=>setPanelOpen(true)}>+ Add purchase</button>
+      </div>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} type="purchase" onAdd={add} />
+    </div>
+  );
+}
+
+// ─── PAYMENTS TAB ────────────────────────────────────────────────────────────
+function PaymentsTab({ payments, setPayments }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const update = (id,k,v) => setPayments(ps => ps.map(p => p.id===id ? {...p,[k]:v} : p));
+  const toggle = (id) => setPayments(ps => ps.map(p => p.id===id ? {...p, done:!p.done, status:!p.done?'Paid':'Pending'} : p));
+  const del    = (id) => setPayments(ps => ps.filter(p => p.id!==id));
+  const add    = (item) => setPayments(ps => [...ps, item]);
+
+  const forecast   = payments.reduce((s,p)=>s+(p.amount||0),0);
+  const paid       = payments.filter(isPaidStatus).reduce((s,p)=>s+(p.amount||0),0);
+  const remaining  = payments.filter(p=>!isPaidStatus(p)).reduce((s,p)=>s+(p.amount||0),0);
+  const payPct     = forecast > 0 ? Math.round((paid/forecast)*100) : 0;
+
+  return (
+    <div>
+      {/* ── Payment summary ── */}
+      <div className="payment-summary">
+        <div className="payment-summary-card">
+          <div className="payment-summary-label">Forecast total</div>
+          <div className="payment-summary-value forecast">€{fmtAmt(forecast)}</div>
+          <div className="payment-summary-sub">{payments.length} payment items</div>
+        </div>
+        <div className="payment-summary-card">
+          <div className="payment-summary-label">Spend to date</div>
+          <div className="payment-summary-value spent">€{fmtAmt(paid)}</div>
+          <div className="payment-summary-sub">{payPct}% of forecast</div>
+          <div className="payment-progress-track"><div className="payment-progress-fill" style={{width:`${Math.min(payPct,100)}%`}} /></div>
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="table-container">
+        <table>
+          <thead><tr><th></th><th>Payment</th><th>Amount</th><th>Owner</th><th>Status</th><th>ETA</th><th></th></tr></thead>
+          <tbody>
+            {payments.map(p => (
+              <tr key={p.id} className={p.done?'done-row':''}>
+                <td><input type="checkbox" className="check" checked={!!p.done} onChange={()=>toggle(p.id)} /></td>
+                <td><span className={p.done?'done-text':''}><EditText value={p.name} onChange={v=>update(p.id,'name',v)} /></span></td>
+                <td><span className="amount">€{fmtAmt(p.amount||0)}</span></td>
+                <td><EditText value={p.owner} onChange={v=>update(p.id,'owner',v)} placeholder="Owner" /></td>
+                <td><StatusBadge value={p.status} onChange={v=>update(p.id,'status',v)} options={PAY_STATUS} /></td>
+                <td><EditDate value={p.eta} onChange={v=>update(p.id,'eta',v)} /></td>
+                <td><button className="delete-btn" onClick={()=>del(p.id)}>×</button></td>
+              </tr>
+            ))}
+            <tr className="add-row"><td colSpan={7}><button className="add-btn" onClick={()=>setPanelOpen(true)}>+ Add payment</button></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={2} style={{textAlign:'right',color:'var(--ink-3)',fontSize:11,letterSpacing:'0.07em',textTransform:'uppercase'}}>Total paid</td>
+              <td colSpan={2}><span className="foot-paid">€{fmtAmt(paid)}</span></td>
+              <td colSpan={2} style={{textAlign:'right',color:'var(--ink-3)',fontSize:11,letterSpacing:'0.07em',textTransform:'uppercase',paddingRight:4}}>Remaining</td>
+              <td><span className="foot-remaining">€{fmtAmt(remaining)}</span></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {/* Mobile cards */}
+      <div className="mobile-card">
+        <div className="card-list">
+          {payments.map(p => {
+            const overdue = p.eta && new Date(p.eta+'T00:00:00') < TODAY && !p.done;
+            return (
+              <div key={p.id} className={`item-card${p.done?' done-card':''}`}>
+                <div className="item-card-check">
+                  <input type="checkbox" className="check" checked={!!p.done} onChange={()=>toggle(p.id)} />
+                </div>
+                <div className="item-card-body">
+                  <div className={`item-card-name${p.done?' done-text':''}`}>{p.name}</div>
+                  <div className="item-card-primary">
+                    <span className="item-card-price-big">€{fmtAmt(p.amount||0)}</span>
+                    <span className={`badge ${p.status.replace(' ','-')}`} onClick={()=>{
+                      const next = PAY_STATUS[(PAY_STATUS.indexOf(p.status)+1)%PAY_STATUS.length];
+                      update(p.id,'status',next);
+                    }}>{p.status}</span>
+                  </div>
+                  <div className="item-card-secondary">
+                    <span className="item-card-owner">{p.owner}</span>
+                    {p.eta && <><span className="item-card-dot">·</span><span className={`item-card-eta${overdue?' overdue':''}`}>ETA {fmt(p.eta)}</span></>}
+                  </div>
+                </div>
+                <button className="item-card-del" onClick={()=>del(p.id)}>×</button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mobile-pay-footer">
+          <span style={{color:'var(--green)',fontFamily:'var(--font-mono)',fontWeight:500}}>Paid: €{fmtAmt(paid)}</span>
+          <span style={{fontFamily:'var(--font-mono)',fontWeight:500}}>Due: €{fmtAmt(remaining)}</span>
+        </div>
+        <button className="mobile-add-btn" onClick={()=>setPanelOpen(true)}>+ Add payment</button>
+      </div>
+      <AddPanel open={panelOpen} onClose={()=>setPanelOpen(false)} type="payment" onAdd={add} />
+    </div>
+  );
+}
+
+
+// ─── COST DRIVERS TAB ────────────────────────────────────────────────────────
+function CostDriversTab({ payments }) {
+  const rows = costDriverRows(payments);
+  const totalForecast = rows.reduce((s,r)=>s+r.forecast,0);
+  const totalSpent = rows.reduce((s,r)=>s+r.spent,0);
+  const totalPaid = rows.reduce((s,r)=>s+r.paid,0);
+  const totalDiff = totalSpent - totalForecast;
+  return (
+    <div>
+      <div className="ov-section-title">Cost drivers</div>
+      <div className="cd-note">Forecast comes from the Dec 2025 Cost Drivers sheet. Spent comes from the Paid/Pending sheet and is mapped into decision buckets where line items do not match 1:1. Mixed items are shown explicitly so you can challenge the allocation.</div>
+      <div className="cd-kpi-grid">
+        <div className="cd-kpi-card"><div className="cd-kpi-label">Forecasted</div><div className="cd-kpi-value">{K(totalForecast)}</div></div>
+        <div className="cd-kpi-card"><div className="cd-kpi-label">Spent / committed</div><div className="cd-kpi-value">{K(totalSpent)}</div></div>
+        <div className="cd-kpi-card"><div className="cd-kpi-label">Paid</div><div className="cd-kpi-value under">{K(totalPaid)}</div></div>
+        <div className="cd-kpi-card"><div className="cd-kpi-label">Variance</div><div className={`cd-kpi-value${totalDiff>0?' over':' under'}`}>{totalDiff>0?`+${K(totalDiff)}`:`-${K(Math.abs(totalDiff))}`}</div></div>
+      </div>
+      {rows.map(r => {
+        const over = r.diff > 0;
+        const under = r.diff < 0;
+        const statusClass = r.status === 'Check' ? 'check' : over ? 'over' : 'under';
+        return (
+          <div key={r.id} className="cd-driver-card">
+            <div className="cd-driver-head">
+              <div><div className="cd-driver-name">{r.name}</div><div className="cd-driver-meta">{r.note}</div></div>
+              <div className="cd-num">Forecast<br/><strong>{K(r.forecast)}</strong></div>
+              <div className="cd-num">Spent<br/><strong>{K(r.spent)}</strong></div>
+              <div className={`cd-num${over?' over':under?' under':''}`}>Variance<br/><strong>{over?`Over ${K(r.diff)}`:under?`Under ${K(Math.abs(r.diff))}`:'On track'}</strong></div>
+              <div className={`cd-status ${statusClass}`}>{r.status}</div>
+            </div>
+            <div className="cd-detail-grid">
+              <div className="cd-detail-pane">
+                <div className="cd-detail-title">Forecasted line items</div>
+                {(r.forecastItems || []).map((f,i)=><div className="cd-line" key={i}><div className="cd-line-name">{Array.isArray(f) ? f[0] : f.name}</div><div className="cd-line-amt">{K(Array.isArray(f) ? f[1] : f.amount)}</div></div>)}
+              </div>
+              <div className="cd-detail-pane">
+                <div className="cd-detail-title">Paid / pending line items</div>
+                {r.actualItems.length ? r.actualItems.map((a,i)=><div className="cd-line" key={i}><div className="cd-line-name">{a.name}<div className="cd-line-sub">{a.owner} · {a.status}</div></div><div className="cd-line-amt">{K(a.amount)}</div></div>) : <div className="empty-state">No mapped payment yet.</div>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── NOTES TAB ───────────────────────────────────────────────────────────────
+function NotesTab({ works, purchases, payments, weekDate, notes, setNotes }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    const wk = weekDate ? new Date(weekDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const allTasks = [...works,...purchases];
+    const done     = allTasks.filter(t=>t.status==='Done').length;
+    const total    = allTasks.length;
+    const daysLeft = Math.max(0, Math.round((TARGET-TODAY)/86400000));
+    const blocked  = allTasks.filter(t=>t.status==='Blocked').map(t=>t.name);
+    const inprog   = [...works,...purchases].filter(t=>t.status==='In progress');
+    const payDue   = payments.filter(p=>!p.done&&p.status!=='Paid').reduce((s,p)=>s+(p.amount||0),0);
+    let text = `BEAUSOLEIL — Weekly Update\nWeek of ${wk}\n${'─'.repeat(40)}\n\n`;
+    text += `PROGRESS\n${done}/${total} tasks complete. ${daysLeft} days to target.\n`;
+    if (blocked.length) text += `\nBlocked:\n${blocked.map(b=>`  · ${b}`).join('\n')}\n`;
+    if (inprog.length)  text += `\nIn progress:\n${inprog.map(t=>`  · ${t.name} (${t.owner})${t.eta?' — ETA '+fmt(t.eta):''}`).join('\n')}\n`;
+    text += `\nPAYMENTS\nRemaining: €${fmtAmt(payDue)}\n`;
+    if (notes.trim()) text += `\nNOTES\n${notes.trim()}\n`;
+    navigator.clipboard.writeText(text).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2500); });
+  };
+  return (
+    <div style={{maxWidth:720}}>
+      <div className="section-title" style={{marginBottom:12}}>Weekly Notes</div>
+      <textarea className="notes-area" value={notes} onChange={e=>setNotes(e.target.value)}
+        placeholder="Add notes for this week — observations, decisions, follow-ups…" />
+      <div className="notes-footer">
+        <button className="btn-solid" onClick={copy}>Copy weekly update</button>
+        {copied && <span className="copy-confirm">Copied to clipboard</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,       setTab]       = useState('overview');
+  const [works,     setWorks]     = useState([]);
+  const [purchases, setPurchases] = useState([]);
+  const [payments,  setPayments]  = useState([]);
+  const [notes,     setNotes]     = useState('');
+  const [weekDate,  setWeekDate]  = useState(new Date().toISOString().split('T')[0]);
+  const [syncStatus,setSyncStatus]= useState('saving');
+  const [loaded,    setLoaded]    = useState(false);
+  const [linkCopied,setLinkCopied]= useState(false);
+  const saveTimer = useRef(null);
+
+  // ── LOAD from JSONBin on mount ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch('GET', `/v3/b/${BIN_ID}/latest`);
+        const d   = res.record || res;
+        if (d.works)     setWorks(d.works);
+        else if (d.tasks) {
+          setWorks(d.tasks.filter(t=>t.section==='Construction').map(({section,...t})=>({...t,status:mapStatus(t.status)})));
+          setPurchases(d.tasks.filter(t=>t.section==='Purchases').map(({section,amount,...t})=>({...t,status:mapStatus(t.status)})));
+        } else {
+          setWorks(DEFAULT_WORKS); setPurchases(DEFAULT_PURCHASES);
+        }
+        if (d.works)     setWorks(d.works);
+        if (d.purchases) setPurchases(d.purchases.map(hydratePurchase));
+        // ── Payment migration: if bin has old short list, replace with full Actuals ──
+        if (d.payments && d.payments.length >= 15) {
+          setPayments(d.payments.map(normalizePayment));
+        } else {
+          setPayments(DEFAULT_PAYMENTS);
+        }
+        if (d.notes)     setNotes(d.notes);
+        if (d.weekDate)  setWeekDate(d.weekDate);
+        setSyncStatus('saved');
+      } catch(e) {
+        setWorks(DEFAULT_WORKS); setPurchases(DEFAULT_PURCHASES); setPayments(DEFAULT_PAYMENTS);
+        setSyncStatus('error');
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  // ── SAVE to JSONBin on change (debounced) ──
+  const persist = useCallback((w,pu,pa,n,wd) => {
+    setSyncStatus('saving');
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await apiFetch('PUT', `/v3/b/${BIN_ID}`, { works:w, purchases:pu, payments:pa, notes:n, weekDate:wd });
+        setSyncStatus('saved');
+      } catch(e) { setSyncStatus('error'); }
+    }, 900);
+  }, []);
+
+  useEffect(() => { if (loaded) persist(works,purchases,payments,notes,weekDate); }, [works,purchases,payments,notes,weekDate,loaded]);
+
+  const syncLabel = syncStatus==='saved'?'All changes saved':syncStatus==='saving'?'Saving…':'Error saving';
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(()=>{ setLinkCopied(true); setTimeout(()=>setLinkCopied(false),2000); });
+  };
+
+  if (!loaded) return <div className="loading-screen">Loading project data…</div>;
+
+  return (
+    <>
+      <nav className="nav">
+        <div className="nav-logo">Beausoleil<span>Renovation Tracker</span></div>
+        <div className="week-selector">
+          Week of
+          <input type="date" value={weekDate} onChange={e=>setWeekDate(e.target.value)} />
+        </div>
+      </nav>
+
+      <div className="sync-bar">
+        <div className="sync-indicator">
+          <div className={`sync-dot ${syncStatus}`} />
+          <span>{syncLabel}</span>
+        </div>
+        <button className="btn-ghost" onClick={copyLink}>{linkCopied?'Copied!':'Copy share link'}</button>
+      </div>
+
+      <div className="tabs">
+        {[['overview','Overview'],['works','Works'],['purchases','Purchases'],['payments','Payments'],['costDrivers','Cost Drivers'],['notes','Notes']].map(([key,label]) => (
+          <button key={key} className={`tab${tab===key?' active':''}`} onClick={()=>setTab(key)}>{label}</button>
+        ))}
+      </div>
+
+      <div className="content">
+        {tab==='overview'  && <OverviewTab  works={works} purchases={purchases} payments={payments} onOpenCostDrivers={()=>setTab('costDrivers')} />}
+        {tab==='works'     && <WorksTab     works={works} setWorks={setWorks} />}
+        {tab==='purchases' && <PurchasesTab purchases={purchases} setPurchases={setPurchases} />}
+        {tab==='payments'  && <PaymentsTab  payments={payments} setPayments={setPayments} />}
+        {tab==='costDrivers' && <CostDriversTab payments={payments} />}
+        {tab==='notes'     && <NotesTab     works={works} purchases={purchases} payments={payments} weekDate={weekDate} notes={notes} setNotes={setNotes} />}
+      </div>
+    </>
+  );
+}
+
+function mapStatus(s) {
+  const m = { pending:'Pending', inprog:'In progress', blocked:'Blocked', ordered:'Ordered', done:'Delivered' };
+  return m[s] || s || 'Pending';
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
