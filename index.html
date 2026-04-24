@@ -199,6 +199,10 @@ tfoot td { padding: 12px 12px; border-top: 2px solid var(--rule); font-size: 13p
 .ov-risk-status.high   { background: #FCEBEB; color: #A32D2D; }
 .ov-risk-status.medium { background: #FAEEDA; color: #854F0B; }
 .ov-risk-status.low    { background: var(--bg2); color: var(--ink-3); }
+.ov-beau-card { border: 0.5px solid var(--rule); border-radius: 4px; background: var(--bg); padding: 14px; }
+.ov-beau-controls { margin-bottom: 10px; }
+.ov-beau-text { font-size: 13px; color: var(--ink-2); line-height: 1.6; white-space: pre-wrap; }
+.ov-beau-error { color: #A32D2D; background: #FCEBEB; border-left: 3px solid #A32D2D; padding: 8px 10px; font-size: 12px; }
 
 /* ── GANTT CHART ── */
 .gantt-wrap { margin-bottom: 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -821,10 +825,13 @@ const normalizePayment = (p) => {
 };
 
 // ─── OVERVIEW TAB ────────────────────────────────────────────────────────────
-function OverviewTab({ works, purchases, payments, onOpenCostDrivers }) {
+function OverviewTab({ works, purchases, payments, notes, costDrivers, onOpenCostDrivers }) {
   const [budget, setBudget]           = useState(66367);
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetDraft, setBudgetDraft]   = useState('66367');
+  const [beauSummary, setBeauSummary] = useState('');
+  const [beauLoading, setBeauLoading] = useState(false);
+  const [beauError, setBeauError] = useState('');
   const budgetRef = useRef();
   useEffect(() => { if (editingBudget && budgetRef.current) budgetRef.current.focus(); }, [editingBudget]);
 
@@ -870,7 +877,9 @@ function OverviewTab({ works, purchases, payments, onOpenCostDrivers }) {
   const budgetLinePct = (budget / barMax) * 100;
 
   // ── Cost drivers — reconciled from Dec forecast and Paid/Pending actuals ──
-  const drivers = costDriverRows(payments)
+  const derivedCostDrivers = costDriverRows(payments);
+  const summaryCostDrivers = (Array.isArray(costDrivers) && costDrivers.length) ? costDrivers : derivedCostDrivers;
+  const drivers = derivedCostDrivers
     .filter(d => d.spent > 0 || d.forecast > 0)
     .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
     .slice(0, 6)
@@ -896,6 +905,32 @@ function OverviewTab({ works, purchases, payments, onOpenCostDrivers }) {
     ? { bg:'#FCEBEB', col:'#A32D2D', text:`Over budget by ${K(overBudget)}` }
     : { bg:'#FAEEDA', col:'#854F0B', text:`${K(underRemaining)} remaining` };
 
+  const generateBeauSummary = async () => {
+    setBeauLoading(true);
+    setBeauError('');
+    try {
+      const res = await fetch('/.netlify/functions/beau-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          works,
+          purchases,
+          payments,
+          notes,
+          costDrivers: summaryCostDrivers,
+        }),
+      });
+      if (!res.ok) throw new Error(`Could not generate summary (HTTP ${res.status}).`);
+      const data = await res.json();
+      if (!data || typeof data.text !== 'string') throw new Error('Unexpected response from Beau Summary function.');
+      setBeauSummary(data.text);
+    } catch (e) {
+      setBeauError(e.message || 'Unable to generate Beau summary right now. Please try again.');
+    } finally {
+      setBeauLoading(false);
+    }
+  };
+
   return (
     <div>
       {/* ─── EDITORIAL BANNER ─── */}
@@ -911,6 +946,23 @@ function OverviewTab({ works, purchases, payments, onOpenCostDrivers }) {
         {[...Array(14)].map((_,i)=>(<React.Fragment key={i}><line x1={440+i*60} y1="175" x2={468+i*60} y2="210" stroke="#b0a89c" strokeWidth="0.5" opacity="0.65"/><line x1={468+i*60} y1="175" x2={440+i*60} y2="210" stroke="#b0a89c" strokeWidth="0.5" opacity="0.65"/></React.Fragment>))}
         <text x="1270" y="205" fontFamily="'DM Sans',sans-serif" fontSize="9" letterSpacing="2.5" fill="#a8a29a" textAnchor="end">EN COURS · AVR. 2026</text>
       </svg>
+
+      <div className="ov-section">
+        <div className="ov-section-title">Beau summary</div>
+        <div className="ov-beau-card">
+          <div className="ov-beau-controls">
+            <button className="btn-ghost" onClick={generateBeauSummary} disabled={beauLoading}>
+              {beauLoading ? 'Generating…' : 'Generate Beau Summary'}
+            </button>
+          </div>
+          {beauLoading && <div className="ov-beau-text">Beau is reviewing the project…</div>}
+          {!beauLoading && beauError && <div className="ov-beau-error">{beauError}</div>}
+          {!beauLoading && !beauError && beauSummary && <div className="ov-beau-text">{beauSummary}</div>}
+          {!beauLoading && !beauError && !beauSummary && (
+            <div className="ov-beau-text">Generate an AI summary using the latest project data.</div>
+          )}
+        </div>
+      </div>
 
       {/* ─── 1. BUDGET STATUS — top priority ─── */}
       <div className="ov-section">
@@ -1633,7 +1685,7 @@ function App() {
       </div>
 
       <div className="content">
-        {tab==='overview'  && <OverviewTab  works={works} purchases={purchases} payments={payments} onOpenCostDrivers={()=>setTab('costDrivers')} />}
+        {tab==='overview'  && <OverviewTab  works={works} purchases={purchases} payments={payments} notes={notes} onOpenCostDrivers={()=>setTab('costDrivers')} />}
         {tab==='works'     && <WorksTab     works={works} setWorks={setWorks} />}
         {tab==='purchases' && <PurchasesTab purchases={purchases} setPurchases={setPurchases} />}
         {tab==='payments'  && <PaymentsTab  payments={payments} setPayments={setPayments} />}
