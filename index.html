@@ -1151,7 +1151,7 @@ function WorksTab({ works, setWorks }) {
   const add    = (item) => setWorks(ts => [...ts, item]);
 
   // ── Gantt chart ──
-  // Date range: today - 7 days → June 1
+  // Date range: today - 7 days -> June 1
   const ganttStart = new Date('2026-04-14'); // fixed start so chart is stable
   const ganttEnd   = new Date('2026-06-01');
   const totalDays  = Math.ceil((ganttEnd - ganttStart) / 86400000);
